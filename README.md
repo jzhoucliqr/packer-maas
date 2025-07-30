@@ -25,6 +25,7 @@ Read more about how [custom images](https://maas.io/docs/how-to-customise-images
 | [Debian 11](debian/README.md)         | Beta               | x86_64 / aarch64  | >= 3.2           |
 | [Debian 12](debian/README.md)         | Beta               | x86_64 / aarch64  | >= 3.2           |
 | [Debian 13](debian/README.md)         | Beta               | x86_64 / aarch64  | >= 3.2           |
+| [Fedora CoreOS](fcos/README.md)       | Beta               | x86_64 / aarch64  | >= 3.3           |
 | [Fedora Server 41](fedora-server/README.md)         | Beta               | x86_64 / aarch64  | >= 3.2           |
 | [Fedora Server 42](fedora-server/README.md)         | Beta               | x86_64 / aarch64  | >= 3.2           |
 | [OL8](ol8/README.md)               | Alpha              | x86_64            | >= 3.5           |

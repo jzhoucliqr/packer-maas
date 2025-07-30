@@ -1,0 +1,73 @@
+#!/bin/bash -ex
+#
+# install-custom-packages - Install custom packages for Fedora CoreOS
+#
+# Author: Canonical Ltd.
+#
+# Copyright (C) 2024 Canonical
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+echo "Installing custom packages for Fedora CoreOS"
+
+# CoreOS uses rpm-ostree for package management
+# This is different from traditional package managers like dnf/yum
+# Packages are layered on top of the base ostree image
+
+# Install essential packages that might be needed by MAAS
+# Note: CoreOS comes with most necessary tools pre-installed
+
+if [ -f /curtin/custom-packages.tar.gz ]; then
+    echo "Found custom packages archive"
+    cd /tmp
+    tar -xzf /curtin/custom-packages.tar.gz
+    
+    # CoreOS package installation would typically use rpm-ostree
+    # but since we're in a deployment context, we can use rpm directly
+    # for adding packages to the live system
+    
+    if [ -d custom-packages ]; then
+        cd custom-packages
+        for pkg in *.rpm; do
+            if [ -f "$pkg" ]; then
+                echo "Installing $pkg"
+                rpm -ivh "$pkg" || echo "Warning: Failed to install $pkg"
+            fi
+        done
+    fi
+    
+    cd /
+    rm -rf /tmp/custom-packages
+else
+    echo "No custom packages found to install"
+fi
+
+# Ensure MAAS agent dependencies are available
+# Most should already be present in CoreOS
+packages_to_check=(
+    "cloud-init"
+    "openssh-server"
+    "curl"
+    "wget"
+)
+
+for pkg in "${packages_to_check[@]}"; do
+    if ! rpm -q "$pkg" >/dev/null 2>&1; then
+        echo "Warning: $pkg not found - MAAS functionality may be limited"
+    else
+        echo "Verified: $pkg is installed"
+    fi
+done
+
+echo "Custom package installation complete" 

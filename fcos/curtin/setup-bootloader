@@ -1,0 +1,42 @@
+#!/bin/bash -ex
+#
+# setup-bootloader - Configure bootloader for Fedora CoreOS
+#
+# Author: Canonical Ltd.
+#
+# Copyright (C) 2024 Canonical
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+# CoreOS uses GRUB2 and the bootloader is typically already configured
+# in the ostree image. We mainly need to ensure MAAS can interact with it.
+
+echo "Configuring bootloader for Fedora CoreOS"
+
+# Ensure grub configuration is proper for MAAS
+if [ -f /etc/default/grub ]; then
+    # Ensure console output is configured for MAAS serial console support
+    if ! grep -q "console=ttyS0" /etc/default/grub; then
+        sed -i 's/GRUB_CMDLINE_LINUX="/GRUB_CMDLINE_LINUX="console=ttyS0,115200n8 /' /etc/default/grub
+    fi
+    
+    # Regenerate GRUB configuration if grub2-mkconfig exists
+    if command -v grub2-mkconfig >/dev/null 2>&1; then
+        grub2-mkconfig -o /boot/grub2/grub.cfg
+    elif command -v grub-mkconfig >/dev/null 2>&1; then
+        grub-mkconfig -o /boot/grub2/grub.cfg
+    fi
+fi
+
+echo "Bootloader configuration complete" 
