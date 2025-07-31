@@ -89,6 +89,7 @@ source "qemu" "fcos" {
     ["-serial", "mon:stdio"],
     ["-machine", "accel=kvm:tcg"],
     ["-cpu", "max"],
+    ["-drive", "file=output-fcos/packer-fcos,if=virtio,format=qcow2"],
     ["-global", "driver=cfi.pflash01,property=secure,value=off"],
     ["-drive", "if=pflash,format=raw,unit=0,id=ovmf_code,readonly=on,file=${var.ovmf_base}/OVMF_CODE${var.ovmf_suffix}.fd"],
     ["-drive", "if=pflash,format=raw,unit=1,id=ovmf_vars,file=x86_64_VARS.fd"],
