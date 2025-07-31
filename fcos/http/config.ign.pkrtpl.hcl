@@ -34,6 +34,11 @@
       {
         "name": "maas-machine-setup.service",
         "enabled": true
+      },
+      {
+        "name": "packer-shutdown.service",
+        "enabled": true,
+        "contents": "[Unit]\nDescription=Auto-shutdown for Packer build\nAfter=multi-user.target\n\n[Service]\nType=oneshot\nExecStartPre=/bin/sleep 180\nExecStart=/usr/bin/systemctl poweroff\nRemainAfterExit=yes\n\n[Install]\nWantedBy=multi-user.target\n"
       }
     ]
   },

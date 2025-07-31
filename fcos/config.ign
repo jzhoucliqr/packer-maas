@@ -12,7 +12,7 @@
         ],
         "shell": "/bin/bash",
         "sshAuthorizedKeys": [
-          "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC0g+ZTxC7weoIJLUafOgrm+h...example@maas"
+          "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDPzCd2HIOIwwhOhKbgw2iQ8ps6XAelub5aUB1FQ/licVT6TlO2PWrMNXPdxZjofvFn+0Lbxt0wmFzJxmII1W5N/X6Jyn288kfhUli+xOwwdbkCSQyjouU5tHC34qm8ZWQ5tMq0dv6/fY8xBL3fJ5emAl3yv53r9RrCDVaRe/6ECurdeg1th7BOz8P/7EU4+D17LlREEfCpW0yLGxjwHm5rlJYRq/lIc4fwaPtBF85KhAapG+UKfc9tUY3ra3NI8ih3RCgx5vbyIU/0Dv89NtDzLi1eTs8B48eyHBt/osxDFMuoeRcex2fwXE7FdYH7lT83SMfzkhrELIPf7qQ5rYB5 junzhou@Juns-MacBook-Pro.local"
         ]
       }
     ]
