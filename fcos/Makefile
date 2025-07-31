@@ -8,17 +8,20 @@ STREAM ?= stable
 TIMEOUT ?= 1h
 ARCH ?= x86_64
 
-# Detect if running on ARM host
-ifeq ($(shell uname -m),aarch64)
-    HOST_IS_ARM = true
-else
-    HOST_IS_ARM = false
-endif
+# x86_64 only support
 
-ifeq ($(wildcard /usr/share/OVMF/OVMF_CODE.fd),)
+# Detect OVMF location and suffix (Fedora vs Ubuntu/Debian)
+ifeq ($(wildcard /usr/share/edk2/ovmf/OVMF_CODE.fd),)
+  ifeq ($(wildcard /usr/share/OVMF/OVMF_CODE.fd),)
 	OVMF_SFX ?= _4M
+	OVMF_BASE ?= /usr/share/OVMF
+  else
+	OVMF_SFX ?=
+	OVMF_BASE ?= /usr/share/OVMF
+  endif
 else
 	OVMF_SFX ?=
+	OVMF_BASE ?= /usr/share/edk2/ovmf
 endif
 
 export PACKER_LOG
@@ -32,7 +35,7 @@ endif
 
 all: fcos.tar.gz
 
-$(eval $(call check_packages_deps))
+#$(eval $(call check_packages_deps))
 
 lint: validate-ignition
 	packer validate .
@@ -68,11 +71,12 @@ download-image:
 		echo "Or from container: podman run --pull=always --rm -v \$${PWD}:/data -w /data quay.io/coreos/coreos-installer:release download -s $(STREAM) -p qemu -f qcow2.xz --decompress"; \
 		exit 1; \
 	fi
-	@if [ ! -f fedora-coreos-*-$(STREAM)-*-qemu.$(ARCH).qcow2 ]; then \
+	@# Check if we already have a CoreOS image for x86_64
+	@if [ ! -f fedora-coreos-*-qemu.x86_64.qcow2 ]; then \
 		echo "Downloading CoreOS $(STREAM) stream with verification..."; \
 		for retry in 1 2 3; do \
 			echo "Download attempt $$retry..."; \
-			if coreos-installer download -s $(STREAM) -p qemu -f qcow2.xz --decompress --architecture $(ARCH) -C ./; then \
+			if coreos-installer download -s $(STREAM) -p qemu -f qcow2.xz --decompress --architecture x86_64 -C ./; then \
 				echo "Download successful"; \
 				break; \
 			else \
@@ -88,47 +92,56 @@ download-image:
 		echo "CoreOS image already exists, skipping download."; \
 	fi
 	@# Verify the downloaded image exists and is valid
-	@if [ ! -f fedora-coreos-*-$(STREAM)-*-qemu.$(ARCH).qcow2 ]; then \
+	@COREOS_IMAGE=$$(ls fedora-coreos-*-qemu.x86_64.qcow2 2>/dev/null | head -1); \
+	if [ -z "$$COREOS_IMAGE" ]; then \
 		echo "Error: No CoreOS image found after download"; \
 		exit 1; \
 	fi
 	@# Basic file size validation (CoreOS images should be > 500MB)
-	@IMAGE_SIZE=$$(stat -c%s fedora-coreos-*-$(STREAM)-*-qemu.$(ARCH).qcow2 2>/dev/null || stat -f%z fedora-coreos-*-$(STREAM)-*-qemu.$(ARCH).qcow2 2>/dev/null); \
+	@COREOS_IMAGE=$$(ls fedora-coreos-*-qemu.x86_64.qcow2 | head -1); \
+	IMAGE_SIZE=$$(stat -c%s "$$COREOS_IMAGE" 2>/dev/null || stat -f%z "$$COREOS_IMAGE" 2>/dev/null); \
 	if [ $$IMAGE_SIZE -lt 524288000 ]; then \
 		echo "Error: Downloaded image appears corrupted (size: $$IMAGE_SIZE bytes)"; \
-		rm -f fedora-coreos-*-$(STREAM)-*-qemu.$(ARCH).qcow2; \
+		rm -f "$$COREOS_IMAGE"; \
 		exit 1; \
 	fi
 	@# Create a symlink with a predictable name for the template
-	@if [ ! -L fedora-coreos-current.qcow2 ]; then \
-		ln -sf $$(ls fedora-coreos-*-$(STREAM)-*-qemu.$(ARCH).qcow2 | head -1) fedora-coreos-current.qcow2; \
+	@COREOS_IMAGE=$$(ls fedora-coreos-*-qemu.x86_64.qcow2 | head -1); \
+	if [ ! -L fedora-coreos-current.qcow2 ] || [ ! -e fedora-coreos-current.qcow2 ]; then \
+		echo "Creating symlink: fedora-coreos-current.qcow2 -> $$COREOS_IMAGE"; \
+		ln -sf "$$COREOS_IMAGE" fedora-coreos-current.qcow2; \
 	fi
-	@echo "CoreOS image ready: $$(ls fedora-coreos-*-$(STREAM)-*-qemu.$(ARCH).qcow2)"
+	@echo "CoreOS image ready: $$(ls fedora-coreos-*-qemu.x86_64.qcow2 | head -1)"
 
-OVMF_VARS.fd: /usr/share/OVMF/OVMF_VARS${OVMF_SFX}.fd
-	cp -v $< ${ARCH}_VARS.fd
+OVMF_VARS.fd: 
+	@if [ -f "${OVMF_BASE}/OVMF_VARS${OVMF_SFX}.fd" ]; then \
+		cp -v "${OVMF_BASE}/OVMF_VARS${OVMF_SFX}.fd" x86_64_VARS.fd; \
+	else \
+		echo "❌ OVMF_VARS.fd not found. Install with: sudo dnf install edk2-ovmf"; \
+		exit 1; \
+	fi
 
 SIZE_VARS.fd:
-ifeq ($(strip $(ARCH)),aarch64)
-	truncate -s 64m ${ARCH}_VARS.fd
-else
-	truncate -s 2m ${ARCH}_VARS.fd
-endif
+	truncate -s 2m x86_64_VARS.fd
 
 fcos.tar.gz: check-deps clean validate-ignition download-image OVMF_VARS.fd SIZE_VARS.fd
 	${PACKER} init fcos.pkr.hcl && ${PACKER} build \
 							-var architecture=${ARCH} \
-							-var host_is_arm=${HOST_IS_ARM} \
 							-var ovmf_suffix=${OVMF_SFX} \
+							-var ovmf_base=${OVMF_BASE} \
 							-var fcos_stream=${STREAM} \
 							-var timeout=${TIMEOUT} \
 							fcos.pkr.hcl
 
 clean:
-	${RM} -rf *.fd output-fcos fcos.tar.gz fedora-coreos-*.qcow2 fedora-coreos-current.qcow2 config.ign temp/
+	@echo "Cleaning build artifacts (preserving downloaded images)..."
+	${RM} -rf *.fd output-fcos fcos.tar.gz config.ign temp/
+	@echo "Build cleanup complete (CoreOS images preserved)"
 
 clean-downloads:
-	${RM} -rf fedora-coreos-*.qcow2 fedora-coreos-current.qcow2
+	@echo "Cleaning downloaded CoreOS images..."
+	${RM} -f fedora-coreos-*-qemu.*.qcow2 fedora-coreos-current.qcow2
+	@echo "Download cleanup complete"
 
 help:
 	@echo "Available targets:"
@@ -137,14 +150,20 @@ help:
 	@echo "  validate-ignition- Validate Ignition configuration"
 	@echo "  lint             - Validate Packer template and format"
 	@echo "  format           - Format Packer template"
-	@echo "  clean            - Clean build artifacts"
+	@echo "  clean            - Clean build artifacts (preserves downloaded images)"
 	@echo "  clean-downloads  - Clean downloaded CoreOS images"
 	@echo "  test             - Run validation tests"
 	@echo "  help             - Show this help"
 	@echo ""
 	@echo "Variables:"
 	@echo "  STREAM           - CoreOS stream (stable, testing, next) [default: stable]"
+	@echo "  ARCH             - Target architecture (x86_64 only) [default: x86_64]"
 	@echo "  TIMEOUT          - Build timeout [default: 1h]"
+	@echo ""
+	@echo "Examples:"
+	@echo "  make STREAM=testing                    # Build testing stream"
+	@echo "  make ARCH=x86_64                       # Build for x86_64 (default)"
+	@echo "  make STREAM=next                       # Build next stream"
 
 test: validate-ignition
 	@echo "Running template validation tests..."
@@ -178,8 +197,9 @@ test-integration:
 		echo "  - Verifying downloaded image..."; \
 		qemu-img check fedora-coreos-current.qcow2 || (echo "✗ Downloaded image is corrupted" && exit 1); \
 		echo "  - Image verification passed"; \
+		echo "  - Downloaded image: $$(ls fedora-coreos-*-qemu.x86_64.qcow2 | head -1)"; \
 	else \
-		echo "✗ Downloaded image not found"; \
+		echo "✗ Downloaded image symlink not found"; \
 		exit 1; \
 	fi
 	

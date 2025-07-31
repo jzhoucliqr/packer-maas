@@ -2,7 +2,7 @@
 
 ## Introduction
 
-The Packer template in this directory creates a Fedora CoreOS image for use with MAAS on AMD64 and ARM64 architectures.
+The Packer template in this directory creates a Fedora CoreOS image for use with MAAS on AMD64 architecture.
 
 ## Prerequisites (to create the image)
 
@@ -66,16 +66,10 @@ You can specify a different CoreOS stream:
 make STREAM=testing
 ```
 
-You can build for different architectures:
+You can specify the architecture (x86_64 only):
 
 ```shell
-make ARCH=aarch64
-```
-
-You can combine parameters:
-
-```shell
-make STREAM=testing ARCH=aarch64
+make ARCH=x86_64
 ```
 
 Alternatively you can manually run packer. Your current working directory must
@@ -105,9 +99,8 @@ The CoreOS stream to use. Defaults to stable. Options are:
 
 #### ARCH
 
-The target architecture for the image. Defaults to x86_64. Options are:
-- x86_64 (default) 
-- aarch64
+The target architecture for the image. Only x86_64 is supported:
+- x86_64 (default and only supported architecture)
 
 #### TIMEOUT
 
@@ -115,19 +108,10 @@ The timeout to apply when building the image. The default value is set to 1h.
 
 ## Uploading an image to MAAS
 
-For AMD64/x86_64:
 ```shell
 maas $PROFILE boot-resources create \
     name='custom/fcos' title='Fedora CoreOS Custom' \
     architecture='amd64/generic' filetype='tgz' \
-    content@=fcos.tar.gz
-```
-
-For ARM64/aarch64:
-```shell
-maas $PROFILE boot-resources create \
-    name='custom/fcos-arm64' title='Fedora CoreOS Custom ARM64' \
-    architecture='arm64/generic' filetype='tgz' \
     content@=fcos.tar.gz
 ```
 
