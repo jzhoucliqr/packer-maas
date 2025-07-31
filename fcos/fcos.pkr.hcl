@@ -74,9 +74,11 @@ source "qemu" "fcos" {
   communicator     = "none"
   pause_before_connecting = "2m"
   disk_image       = true
+  disk_interface   = "virtio"
   disk_size        = "8G"
   format           = "qcow2"
   headless         = true
+  iso_checksum     = "none"
   iso_url          = "fedora-coreos-current.qcow2"
   use_backing_file = true
   memory           = 2048
@@ -84,7 +86,7 @@ source "qemu" "fcos" {
   qemu_binary      = "qemu-system-x86_64"
   qemuargs = [
     ["-serial", "stdio"],
-    ["-boot", "strict=off"],
+    ["-boot", "order=c,strict=off"],
     ["-device", "qemu-xhci"],
     ["-device", "usb-kbd"],
     ["-device", "virtio-net-pci,netdev=net0"],
