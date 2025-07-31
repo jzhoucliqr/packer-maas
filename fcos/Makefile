@@ -124,7 +124,7 @@ OVMF_VARS.fd:
 SIZE_VARS.fd:
 	truncate -s 2m x86_64_VARS.fd
 
-fcos.tar.gz: check-deps clean validate-ignition download-image OVMF_VARS.fd SIZE_VARS.fd
+fcos.tar.gz: clean validate-ignition download-image OVMF_VARS.fd SIZE_VARS.fd
 	${PACKER} init fcos.pkr.hcl && ${PACKER} build \
 							-var architecture=${ARCH} \
 							-var ovmf_suffix=${OVMF_SFX} \

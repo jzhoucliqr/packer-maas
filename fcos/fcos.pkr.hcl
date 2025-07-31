@@ -105,9 +105,12 @@ build {
 
   # Generate Ignition config before VM starts
   provisioner "shell-local" {
+    environment_vars = [
+      "SSH_KEY=${local.ssh_key}"
+    ]
     inline = [
       "echo 'Generating Ignition config...'",
-      "python3 -c \"import sys; template=open('http/config.ign.pkrtpl.hcl').read(); ssh_key='${local.ssh_key}'; config=template.replace('\\${SSH_KEY}', ssh_key); open('config.ign', 'w').write(config)\"",
+      "sed \"s/\\$\\{SSH_KEY\\}/$SSH_KEY/g\" http/config.ign.pkrtpl.hcl > config.ign",
       "echo 'Generated config.ign for CoreOS'"
     ]
   }
