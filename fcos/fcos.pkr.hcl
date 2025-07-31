@@ -85,7 +85,8 @@ source "qemu" "fcos" {
   cores            = 2
   qemu_binary      = "qemu-system-x86_64"
   qemuargs = [
-    ["-nographic"],
+    ["-display", "none"],
+    ["-serial", "mon:stdio"],
     ["-machine", "accel=kvm:tcg"],
     ["-cpu", "max"],
     ["-global", "driver=cfi.pflash01,property=secure,value=off"],
