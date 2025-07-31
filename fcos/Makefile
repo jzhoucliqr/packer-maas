@@ -131,6 +131,8 @@ fcos.tar.gz: check-deps clean validate-ignition download-image OVMF_VARS.fd SIZE
 							-var ovmf_base=${OVMF_BASE} \
 							-var fcos_stream=${STREAM} \
 							-var timeout=${TIMEOUT} \
+							$(if $(SSH_KEY_FILE),-var ssh_key="$$(cat $(SSH_KEY_FILE))") \
+							${PACKER_VARS} \
 							fcos.pkr.hcl
 
 clean:
@@ -159,11 +161,13 @@ help:
 	@echo "  STREAM           - CoreOS stream (stable, testing, next) [default: stable]"
 	@echo "  ARCH             - Target architecture (x86_64 only) [default: x86_64]"
 	@echo "  TIMEOUT          - Build timeout [default: 1h]"
+	@echo "  SSH_KEY_FILE     - Path to SSH public key file [default: ~/.ssh/id_rsa.pub]"
 	@echo ""
 	@echo "Examples:"
+	@echo "  make                                   # Build with default SSH key (~/.ssh/id_rsa.pub)"
 	@echo "  make STREAM=testing                    # Build testing stream"
-	@echo "  make ARCH=x86_64                       # Build for x86_64 (default)"
-	@echo "  make STREAM=next                       # Build next stream"
+	@echo "  make SSH_KEY_FILE=~/.ssh/id_ed25519.pub # Use specific SSH key"
+	@echo "  make PACKER_VARS='-var ssh_key=\"ssh-rsa AAAA...\"' # Pass SSH key directly"
 
 test: validate-ignition
 	@echo "Running template validation tests..."
@@ -206,7 +210,7 @@ test-integration:
 	@echo "✓ Testing Packer build process (dry-run)..."
 	@$(MAKE) validate-ignition
 	@mkdir -p temp
-	@sed 's/\\$\\{SSH_KEY\\}/ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC0g+ZTxC7weoIJLUafOgrm+h...test@example.com/' http/config.ign.pkrtpl.hcl > config.ign
+	@sed 's/\\$\\{SSH_KEY\\}/ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC5U9+3WwP4MdD5DH5Kz7XvqQvzB8HQzE+4CwrMQEQGPZz5v9LHCP0b3QN1ZXbP6wZ2f8KY0mQxJ7RfQXbL0oECZ9xVU6qY2XAqCGl0ZV7wZ8YjQUEtM7P4wX1K8gN2fH1pQ9cJ3nLJQM8bVrJqGv6YfN5pT1V0oNQbfMGQ2C1pR5z3P test@example.com/' http/config.ign.pkrtpl.hcl > config.ign
 	@echo "  - Ignition config generated successfully"
 	@rm -f config.ign
 	

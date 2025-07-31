@@ -72,6 +72,20 @@ You can specify the architecture (x86_64 only):
 make ARCH=x86_64
 ```
 
+### SSH Key Configuration
+
+By default, the build will use your SSH public key from `~/.ssh/id_rsa.pub`. You can specify a different SSH key file:
+
+```shell
+make SSH_KEY_FILE=~/.ssh/id_ed25519.pub
+```
+
+Or pass the SSH key directly using Packer variables:
+
+```shell
+make PACKER_VARS='-var ssh_key="ssh-rsa AAAA...your-key..."'
+```
+
 Alternatively you can manually run packer. Your current working directory must
 be in packer-maas/fcos, where this file is located. Once in packer-maas/fcos
 you can generate an image with:

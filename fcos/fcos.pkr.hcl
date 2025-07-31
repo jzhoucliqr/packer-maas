@@ -46,8 +46,8 @@ variable "ovmf_base" {
 
 variable "ssh_key" {
   type        = string
-  default     = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC0g+ZTxC7weoIJLUafOgrm+h...example@maas"
-  description = "SSH public key for core user authentication"
+  default     = ""
+  description = "SSH public key for core user authentication. If empty, will read from ~/.ssh/id_rsa.pub"
 }
 
 locals {
@@ -63,12 +63,16 @@ locals {
     "amd64"   = "${var.ovmf_suffix}"
     "x86_64"  = "${var.ovmf_suffix}"
   }
+  
+  # Use provided SSH key or read from default location
+  ssh_key = var.ssh_key != "" ? var.ssh_key : trimspace(file("~/.ssh/id_rsa.pub"))
 }
 
 source "qemu" "fcos" {
-  boot_command     = ["<wait10s>c<wait5s>linux /ostree/fedora-coreos-*/vmlinuz console=ttyS0 ignition.config.url=http://{{.HTTPIP}}:{{.HTTPPort}}/config.ign<enter><wait5s>initrd /ostree/fedora-coreos-*/initramfs.img<enter><wait5s>boot<enter>"]
-  boot_wait        = "10s"
+  boot_command     = ["<wait3s><esc><wait1s>", "e<wait1s>", "<down><down><down><end>", " ignition.config.url=http://{{.HTTPIP}}:{{.HTTPPort}}/config.ign", "<f10>"]
+  boot_wait        = "3s"
   communicator     = "none"
+  pause_before_connecting = "2m"
   disk_size        = "8G"
   headless         = true
   iso_checksum     = "none"
@@ -96,7 +100,7 @@ source "qemu" "fcos" {
   http_content = {
     "/config.ign" = templatefile("${path.root}/http/config.ign.pkrtpl.hcl",
       {
-        SSH_KEY = var.ssh_key
+        SSH_KEY = local.ssh_key
       }
     )
   }
