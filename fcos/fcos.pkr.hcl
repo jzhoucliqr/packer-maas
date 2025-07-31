@@ -85,15 +85,8 @@ source "qemu" "fcos" {
   cores            = 2
   qemu_binary      = "qemu-system-x86_64"
   qemuargs = [
-    ["-serial", "stdio"],
-    ["-boot", "order=c,strict=off"],
-    ["-device", "qemu-xhci"],
-    ["-device", "usb-kbd"],
-    ["-device", "virtio-net-pci,netdev=net0"],
-    ["-netdev", "user,id=net0"],
     ["-machine", "accel=kvm:tcg"],
     ["-cpu", "max"],
-    ["-device", "virtio-gpu-pci"],
     ["-global", "driver=cfi.pflash01,property=secure,value=off"],
     ["-drive", "if=pflash,format=raw,unit=0,id=ovmf_code,readonly=on,file=${var.ovmf_base}/OVMF_CODE${var.ovmf_suffix}.fd"],
     ["-drive", "if=pflash,format=raw,unit=1,id=ovmf_vars,file=x86_64_VARS.fd"],
