@@ -103,17 +103,7 @@ source "qemu" "fcos" {
 build {
   sources = ["source.qemu.fcos"]
 
-  # Generate Ignition config before VM starts
-  provisioner "shell-local" {
-    environment_vars = [
-      "SSH_KEY=${local.ssh_key}"
-    ]
-    inline = [
-      "echo 'Generating Ignition config...'",
-      "sed \"s/\\$\\{SSH_KEY\\}/$SSH_KEY/g\" http/config.ign.pkrtpl.hcl > config.ign",
-      "echo 'Generated config.ign for CoreOS'"
-    ]
-  }
+
 
   post-processor "shell-local" {
     inline = [

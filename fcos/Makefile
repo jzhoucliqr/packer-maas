@@ -124,7 +124,14 @@ OVMF_VARS.fd:
 SIZE_VARS.fd:
 	truncate -s 2m x86_64_VARS.fd
 
-fcos.tar.gz: clean validate-ignition download-image OVMF_VARS.fd SIZE_VARS.fd
+config.ign:
+	@echo "Generating Ignition config..."
+	@SSH_KEY=$$(cat ~/.ssh/id_rsa.pub 2>/dev/null || echo "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC5U9+3WwP4MdD5DH5Kz7XvqQvzB8HQzE+4CwrMQEQGPZz5v9LHCP0b3QN1ZXbP6wZ2f8KY0mQxJ7RfQXbL0oECZ9xVU6qY2XAqCGl0ZV7wZ8YjQUEtM7P4wX1K8gN2fH1pQ9cJ3nLJQM8bVrJqGv6YfN5pT1V0oNQbfMGQ2C1pR5z3P example@maas"); \
+	$(if $(SSH_KEY_FILE),SSH_KEY=$$(cat $(SSH_KEY_FILE)); , ) \
+	export SSH_KEY; envsubst < http/config.ign.pkrtpl.hcl > config.ign
+	@echo "Generated config.ign with SSH key"
+
+fcos.tar.gz: clean validate-ignition download-image OVMF_VARS.fd SIZE_VARS.fd config.ign
 	${PACKER} init fcos.pkr.hcl && ${PACKER} build \
 							-var architecture=${ARCH} \
 							-var ovmf_suffix=${OVMF_SFX} \
