@@ -90,8 +90,7 @@ source "qemu" "fcos" {
     ["-global", "driver=cfi.pflash01,property=secure,value=off"],
     ["-drive", "if=pflash,format=raw,unit=0,id=ovmf_code,readonly=on,file=${var.ovmf_base}/OVMF_CODE${var.ovmf_suffix}.fd"],
     ["-drive", "if=pflash,format=raw,unit=1,id=ovmf_vars,file=x86_64_VARS.fd"],
-    ["-drive", "file=fedora-coreos-current.qcow2,if=none,id=drive0,cache=writeback,discard=ignore,format=qcow2"],
-    ["-fw_cfg", "name=opt/com.coreos/config,file=config.ign"]
+    ["-drive", "file=fedora-coreos-current.qcow2,if=none,id=drive0,cache=writeback,discard=ignore,format=qcow2"]
   ]
   shutdown_timeout = var.timeout
   http_content = {
@@ -106,12 +105,7 @@ source "qemu" "fcos" {
 build {
   sources = ["source.qemu.fcos"]
 
-  provisioner "shell-local" {
-    inline = [
-      "# Generate the Ignition config file",
-      "sed 's/\\$\\{SSH_KEY\\}/${var.ssh_key}/' http/config.ign.pkrtpl.hcl > config.ign"
-    ]
-  }
+
 
   post-processor "shell-local" {
     inline = [
@@ -121,7 +115,7 @@ build {
       "source ../scripts/fuse-nbd",
       "source ../scripts/fuse-tar-root",
       "rm -rf output-${source.name}",
-      "rm -f config.ign"
+
     ]
     inline_shebang = "/bin/bash -e"
   }
