@@ -77,7 +77,7 @@ source "qemu" "fcos" {
   disk_interface   = "virtio"
   disk_size        = "8G"
   format           = "qcow2"
-  headless         = true
+  headless         = false
   iso_checksum     = "none"
   iso_url          = "fedora-coreos-current.qcow2"
   use_backing_file = true
