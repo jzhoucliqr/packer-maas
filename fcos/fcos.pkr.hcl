@@ -69,7 +69,7 @@ locals {
 }
 
 source "qemu" "fcos" {
-  boot_command     = ["<wait3s><esc><wait1s>", "e<wait1s>", "<down><down><down><end>", " ignition.config.url=http://{{.HTTPIP}}:{{.HTTPPort}}/config.ign", "<f10>"]
+  boot_command     = []
   boot_wait        = "3s"
   communicator     = "none"
   pause_before_connecting = "2m"
@@ -94,22 +94,23 @@ source "qemu" "fcos" {
     ["-global", "driver=cfi.pflash01,property=secure,value=off"],
     ["-drive", "if=pflash,format=raw,unit=0,id=ovmf_code,readonly=on,file=${var.ovmf_base}/OVMF_CODE${var.ovmf_suffix}.fd"],
     ["-drive", "if=pflash,format=raw,unit=1,id=ovmf_vars,file=x86_64_VARS.fd"],
-    ["-drive", "file=fedora-coreos-current.qcow2,if=none,id=drive0,cache=writeback,discard=ignore,format=qcow2"]
+    ["-drive", "file=fedora-coreos-current.qcow2,if=none,id=drive0,cache=writeback,discard=ignore,format=qcow2"],
+    ["-fw_cfg", "name=opt/com.coreos/config,file=config.ign"]
   ]
   shutdown_timeout = var.timeout
-  http_content = {
-    "/config.ign" = templatefile("${path.root}/http/config.ign.pkrtpl.hcl",
-      {
-        SSH_KEY = local.ssh_key
-      }
-    )
-  }
 }
 
 build {
   sources = ["source.qemu.fcos"]
 
-
+  # Generate Ignition config before VM starts
+  provisioner "shell-local" {
+    inline = [
+      "echo 'Generating Ignition config...'",
+      "python3 -c \"import sys; template=open('http/config.ign.pkrtpl.hcl').read(); ssh_key='${local.ssh_key}'; config=template.replace('\\${SSH_KEY}', ssh_key); open('config.ign', 'w').write(config)\"",
+      "echo 'Generated config.ign for CoreOS'"
+    ]
+  }
 
   post-processor "shell-local" {
     inline = [
@@ -119,7 +120,7 @@ build {
       "source ../scripts/fuse-nbd",
       "source ../scripts/fuse-tar-root",
       "rm -rf output-${source.name}",
-
+      "rm -f config.ign"
     ]
     inline_shebang = "/bin/bash -e"
   }
