@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 #
-# curtin-hooks - Curtin installation hooks for Fedora CoreOS
+# curtin-hooks - Minimal Curtin hooks for Fedora CoreOS (pre-built qcow2)
+#
+# This file serves primarily as a filesystem marker for MAAS to identify
+# the root partition during deployment. For CoreOS, most configuration
+# is handled by Ignition during first boot.
 #
 # Author: Canonical Ltd.
 #
@@ -10,88 +14,39 @@
 # it under the terms of the GNU Affero General Public License as
 # published by the Free Software Foundation, either version 3 of the
 # License, or (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
-#
-# You should have received a copy of the GNU Affero General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
-import platform
 import shutil
 import sys
 
-from curtin import distro, util
-from curtin.commands import apt_config, curthooks
+from curtin.log import LOG
+from curtin.util import load_command_environment
 from curtin.config import load_command_config
-from curtin.log import DEBUG, LOG, basicConfig
-from curtin.paths import target_path
-from curtin.util import ChrootableTarget, load_command_environment
-
-
-def run_hook_in_target(target, hook):
-    """Look for "hook" in "target" and run in a chroot"""
-    target_hook = target_path(target, "/curtin/" + hook)
-    if os.path.isfile(target_hook):
-        LOG.debug("running %s" % target_hook)
-        with ChrootableTarget(target=target) as in_chroot:
-            in_chroot.subp(["/curtin/" + hook])
-        return True
-    return False
 
 
 def curthook(cfg, target, state):
-    """Configure network and bootloader for Fedora CoreOS"""
-    LOG.info('Running curtin builtin curthooks for Fedora CoreOS')
-    state_etcd = os.path.split(state['fstab'])[0]
-    machine = platform.machine()
-
-    distro_info = distro.get_distroinfo(target=target)
-    if not distro_info:
-        raise RuntimeError('Failed to determine target distro')
-    osfamily = distro_info.family
-    LOG.info('Configuring target system for distro: %s osfamily: %s',
-             distro_info.variant, osfamily)
+    """Minimal configuration for Fedora CoreOS (pre-built image)"""
+    LOG.info('Running minimal curtin hooks for Fedora CoreOS')
+    LOG.info('CoreOS uses Ignition for system configuration')
+    LOG.info('Most setup will occur during first boot via Ignition + cloud-init')
     
-    sources = cfg.get('sources', {})
-    dd_image = len(util.get_dd_images(sources)) > 0
-
-    # CoreOS-specific: Skip some steps that don't apply
-    # CoreOS uses ostree and read-only filesystem, so we skip
-    # traditional package management and initramfs updates
-    LOG.info('Skipping overlayroot and initramfs updates for CoreOS')
+    # For a pre-built CoreOS qcow2 image, we don't need to:
+    # - Configure bootloader (already configured)
+    # - Install packages (immutable filesystem)
+    # - Setup networking (handled by cloud-init)
+    # - Modify system files (Ignition handles this)
     
-    if not dd_image:
-        curthooks.configure_iscsi(cfg, state_etcd, target, osfamily=osfamily)
-        curthooks.configure_mdadm(cfg, state_etcd, target, osfamily=osfamily)
-        curthooks.copy_fstab(state.get('fstab'), target)
-        curthooks.add_swap(cfg, target, state.get('fstab'))
-
-    # CoreOS uses rpm-ostree for package management, custom packages
-    # are typically handled via container layering or Ignition
-    # Still run the hook in case there are custom needs
-    run_hook_in_target(target, 'install-custom-packages')
-    
-    curthooks.apply_networking(target, state)
-    curthooks.handle_pollinate_user_agent(cfg, target)
-    
-    # Set cloud-init maas datasource - CoreOS comes with cloud-init
-    if cfg.get('cloudconfig'):
-        curthooks.handle_cloudconfig(
-                      cfg['cloudconfig'],
-                      base_dir=target_path(target,
-                                                 'etc/cloud/cloud.cfg.d'))
-
-    run_hook_in_target(target, 'setup-bootloader')
+    LOG.info('Curtin hooks completed - system ready for deployment')
 
 
 def cleanup():
-    """Remove curtin-hooks so its as if we were never here."""
+    """Remove curtin-hooks directory after deployment"""
     curtin_dir = os.path.dirname(__file__)
-    shutil.rmtree(curtin_dir)
+    LOG.info(f'Cleaning up curtin directory: {curtin_dir}')
+    try:
+        shutil.rmtree(curtin_dir)
+    except Exception as e:
+        LOG.warning(f'Failed to cleanup curtin directory: {e}')
 
 
 def main():
