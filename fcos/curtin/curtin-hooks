@@ -30,6 +30,10 @@ def curthook(cfg, target, state):
     LOG.info('CoreOS uses Ignition for system configuration')
     LOG.info('Most setup will occur during first boot via Ignition + cloud-init')
     
+    # Log the CONFIG environment variable for debugging
+    config_env = os.environ.get('CONFIG', 'Not set')
+    LOG.info(f'CONFIG environment variable: {config_env}')
+    
     # For a pre-built CoreOS qcow2 image, we don't need to:
     # - Configure bootloader (already configured)
     # - Install packages (immutable filesystem)
